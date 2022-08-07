@@ -13,7 +13,8 @@ namespace TelegtramBot.Model
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=FilmDatabase;Trusted_Connection=True;");
+            optionsBuilder.UseSqlServer("Server=localhost\\SQLEXPRESS;Database=BotTest;Trusted_Connection=True;TrustServerCertificate=True;");
+
         }
     }
 }

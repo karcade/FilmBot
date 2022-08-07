@@ -1,4 +1,5 @@
-﻿using TelegramBot.Common.DTO;
+﻿using AutoMapper;
+using TelegramBot.Common.DTO;
 using TelegramBot.Model.DatabaseModels;
 
 namespace TelegramBot.BusinessLogic.Interfaces
@@ -7,13 +8,10 @@ namespace TelegramBot.BusinessLogic.Interfaces
     {
         FilmDTO Get(int id);
         IQueryable<Film> GetById(int id);
-        IQueryable<Film> GetByGenre(string genre);
         IEnumerable<Film> GetAll();
-        void Create(FilmDTO fitmDTO);
-        List<Film> GetList();
-        List<Film> GetListByGenre(string genre);
+        void Create(FilmDTO filmDTO);
         void Delete(int id);
-        List<Film> GetTop15();
-        string GetTop15ToString();
+        IEnumerable<FilmDTO> GetListByGenre(string genre);
+        FilmDTO GetRandomByGenre(string genre);
     }
 }

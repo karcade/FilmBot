@@ -1,19 +1,16 @@
 ﻿using AutoMapper;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
 using TelegramBot.BusinessLogic.Interfaces;
 using TelegramBot.Common.DTO;
 using TelegramBot.Model.DatabaseModels;
 using TelegtramBot.Model;
+using TelegramBot.Common.Mapping;
 
 namespace TelegramBot.BusinessLogic.Implementation
 {
     public class FilmService:IFilmService
     {
-        private readonly ApplicationContext _context;
+        private ApplicationContext _context;
         private readonly IMapper _mapper;
 
         public FilmService(ApplicationContext context, IMapper mapper)
@@ -22,16 +19,38 @@ namespace TelegramBot.BusinessLogic.Implementation
             _mapper = mapper;
         }
 
-        const int TOP_AMOUNT= 15;
-        public void Create(FilmDTO fitmDTO)
+        public IEnumerable<FilmDTO> GetListByGenre(string genre)
         {
-            var film = _mapper.Map<FilmDTO, Film>(fitmDTO);
+            List<Film> films = new List<Film>();
+            using (ApplicationContext context = new ApplicationContext())
+            {
+                films = context.Films.Where(m => EF.Functions.Like(m.Genre, $"%{genre}%")).AsNoTracking().ToList();
+            }
+            List<FilmDTO> filmsDTO = _mapper.Map<List<FilmDTO>>(films);
+            return filmsDTO;
+        }
 
-            film.Name = fitmDTO.Name;
-            film.Country = fitmDTO.Country;
-            film.Genre = fitmDTO.Genre;
-            film.Producer = fitmDTO.Producer;
-            film.Actor = fitmDTO.Actor;
+        public FilmDTO Get(int id)
+        {
+            var film = new Film();
+
+            film = _context.Films.AsNoTracking().FirstOrDefault(m => m.Id == id);
+           
+            FilmDTO filmDTO = _mapper.Map<FilmDTO>(film);
+            return filmDTO;
+        }
+        
+        public void Create(FilmDTO filmDTO)
+        {
+            var film = _mapper.Map<FilmDTO, Film>(filmDTO);
+
+            film.Name = filmDTO.Name;
+            film.Country = filmDTO.Country;
+            film.Genre = filmDTO.Genre;
+            film.Producer = filmDTO.Producer;
+            film.Actor = filmDTO.Actor;
+            film.LinkPoster = filmDTO.LinkPoster;
+            film.Link = filmDTO.Link;
 
             _context.Films.Add(film);
             _context.SaveChanges();
@@ -39,66 +58,32 @@ namespace TelegramBot.BusinessLogic.Implementation
 
         public List<Film> GetList()
         {
-            return _context.Films.ToList();
-        }
-
-        public List<Film> GetListByGenre(string genre)
-        {
-            if (!_context.Films.Any(x => x.Genre == genre)) throw new Exception("Films not found.");
-            return _context.Films.Where(x => x.Genre == genre).ToList();
+            return _context.Films.AsNoTracking().ToList();
         }
 
         public void Delete(int id)
         {
-            throw new NotImplementedException();
+            _context.Films.Remove(GetById(id).FirstOrDefault());
+            _context.SaveChanges();
         }
 
-        public FilmDTO Get(int id)
-        {
-            if (!_context.Films.Any(x => x.Id == id)) throw new Exception("Film not found.");
-
-            return _mapper.Map<Film, FilmDTO>(GetById(id).FirstOrDefault());
-        }
         public IQueryable<Film> GetById(int id)
         {
-            if (!_context.Films.Any(x => x.Id == id)) throw new Exception("Film not found.");
+            if (!_context.Films.Any(x => x.Id == id)) throw new Exception("Film not found");
             return _context.Films.Where(x => x.Id == id);
-        }
-       
-        public IQueryable<Film> GetByGenre(string genre)
-        {
-            if (!_context.Films.Any(x => x.Genre == genre)) throw new Exception("Films not found.");
-            return _context.Films.Where(x => x.Genre == genre);
         }
 
         public IEnumerable<Film> GetAll()
         {
-            if (_context.Films == null) throw new Exception("Films not found.");
-            return _context.Films.ToList();
+            if (_context.Films == null) throw new Exception("Films not found");
+            return _context.Films.AsNoTracking().ToList();
         }
 
-        public List<Film> GetTop15()
+        public FilmDTO GetRandomByGenre(string genre)
         {
-            List<Film> filmList = new List<Film>();
-            var film = new Film();
-
-            for (int i = 0; i < TOP_AMOUNT; i++)
-            {
-                film = (Film)GetById(i);
-                filmList.Add(film);
-            }
-            return filmList;
-        }
-
-        public string GetTop15ToString()
-        {
-            List<Film> filmList = GetTop15();
-            string info="";
-            foreach(var film in filmList)
-            {
-               info+="Название: " + film.Name + "\nСтрана:" + film.Country + ". Жанр:" + film.Genre;
-            }
-            return info;
+            var films = GetListByGenre(" "+genre).ToList();
+            FilmDTO film =films[new Random().Next(films.Count)];
+            return film;
         }
     }
 }

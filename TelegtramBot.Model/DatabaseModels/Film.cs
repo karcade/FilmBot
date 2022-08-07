@@ -11,5 +11,8 @@ namespace TelegramBot.Model.DatabaseModels
         public string Genre { get; set; } = String.Empty;
         public string Producer { get; set; } = String.Empty;
         public string Actor { get; set; } = String.Empty;
+        public string Link { get; set; } = String.Empty;
+        public string LinkPoster { get; set; } = String.Empty;
     }
+
 }
