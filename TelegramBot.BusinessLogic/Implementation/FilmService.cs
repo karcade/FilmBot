@@ -22,10 +22,9 @@ namespace TelegramBot.BusinessLogic.Implementation
         public IEnumerable<FilmDTO> GetListByGenre(string genre)
         {
             List<Film> films = new List<Film>();
-            using (ApplicationContext context = new ApplicationContext())
-            {
-                films = context.Films.Where(m => EF.Functions.Like(m.Genre, $"%{genre}%")).AsNoTracking().ToList();
-            }
+            
+            films = _context.Films.Where(m => EF.Functions.Like(m.Genre, $"%{genre}%")).AsNoTracking().ToList();
+            
             List<FilmDTO> filmsDTO = _mapper.Map<List<FilmDTO>>(films);
             return filmsDTO;
         }
