@@ -57,13 +57,13 @@ namespace TelegramBot.Controllers
                     $"А вот и ТОП-5 для {message.Chat.FirstName} 💜"
                 );
 
-                FilmDTO[] filmList = new FilmDTO[TOP_AMOUNT_FILMS];
+                var filmList=filmService.GetFixAmount(TOP_AMOUNT_FILMS);
 
-                for (int i = 0; i < TOP_AMOUNT_FILMS; i++)
+                for(int i=0; i<filmList.Count; i++)
                 {
-                    filmList[i]= filmService.Get(i+1);
                     await PrintFilm(filmList[i], message.Chat.Id, bot);
                 }
+
                 await HelpString(message.Chat.Id, bot);
                 return;
             }
