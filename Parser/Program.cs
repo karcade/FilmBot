@@ -1,17 +1,32 @@
 ﻿using HtmlAgilityPack;
-using TelegramBot.Common;
 using TelegramBot.BusinessLogic.Implementation;
 using TelegtramBot.Model;
-using TelegramBot.Model.DatabaseModels;
 using AutoMapper;
 using System.Collections;
-using Microsoft.EntityFrameworkCore;
+using TelegramBot.BusinessLogic.Interfaces;
+using TelegramBot.Common.DTO;
+using Microsoft.Extensions.DependencyInjection;
+using TelegramBot.Common.Mapping;
+
+var serviceProvider = new ServiceCollection()
+            .AddLogging()
+            .AddSingleton<IFilmService, FilmService>()
+            .BuildServiceProvider();
+var mapperConfiguration = new MapperConfiguration(x =>
+{
+    x.AddProfile<MapperProfile>();
+});
+mapperConfiguration.AssertConfigurationIsValid();
+IMapper mapper = mapperConfiguration.CreateMapper();
+
+ApplicationContext context = new ApplicationContext();
+IFilmService filmService = new FilmService(context, mapper);
 
 string html = "https://www.kinonews.ru/top100/";
 HtmlWeb web = new HtmlWeb();
 HtmlDocument document = web.Load(html);
 
-var FilmListItems = document.DocumentNode.Descendants("div")
+var FilmDTOListItems = document.DocumentNode.Descendants("div")
     .Where(node => node.GetAttributeValue("style", "")
     .Equals("overflow:auto;")).ToList();
 
@@ -27,78 +42,69 @@ foreach (HtmlNode node in document.DocumentNode.SelectNodes("//div[contains(@cla
     listPoster.Add("https://www.kinonews.ru" + node.GetAttributeValue("src", null));
 }
 
-List<Film> filmList = new List<Film>();
+List<FilmDTO> filmList = new List<FilmDTO>();
 
-using (ApplicationContext context = new ApplicationContext())
-{
-    int i = 0;
-        foreach (var FilmListItem in FilmListItems)
+int i = 0;
+        foreach (var FilmDTOListItem in FilmDTOListItems)
         {
-            Film film = new Film();
+            FilmDTO film = new FilmDTO();
 
             film.Link = (string)listLink[i];
             film.LinkPoster = (string)listPoster[i];
             i++;
             //header
-            var FilmListItemHeader = FilmListItem.Descendants("div")
+            var FilmDTOListItemHeader = FilmDTOListItem.Descendants("div")
                 .Where(node => node.GetAttributeValue("class", "")
                 .Contains("bigtext")).FirstOrDefault();
 
             //name
-            string? FilmListItemName = FilmListItemHeader.Descendants("a")
+            string FilmDTOListItemName = FilmDTOListItemHeader.Descendants("a")
                 .Where(node => node.GetAttributeValue("class", "")
                 .Contains("titlefilm")).FirstOrDefault().InnerText.Trim('\r', '\n', '\t');
-            film.Name = FilmListItemName;
+            film.Name = FilmDTOListItemName;
 
             //body
-            var FilmListItemBody = FilmListItem.Descendants("div")
+            var FilmDTOListItemBody = FilmDTOListItem.Descendants("div")
                 .Where(node => node.GetAttributeValue("class", "")
                 .Contains("relative")).FirstOrDefault();
 
-            var FilmListItemRatingRightDesc = FilmListItemBody.Descendants("div")
+            var FilmDTOListItemRatingRightDesc = FilmDTOListItemBody.Descendants("div")
                 .Where(node => node.GetAttributeValue("class", "")
                 .Contains("rating_rightdesc")).FirstOrDefault();
 
-            var FilmListItemTextGray = FilmListItemRatingRightDesc.Descendants("div")
+            var FilmDTOListItemTextGray = FilmDTOListItemRatingRightDesc.Descendants("div")
                 .Where(node => node.GetAttributeValue("class", "")
                 .Contains("textgray")).ToList();
 
             //country
-            var FilmCountryString = FilmListItemTextGray[0].InnerText;
-            string[] parseFilmCountryString = FilmCountryString.Split(':');
-            string[] parseFilmCountry = parseFilmCountryString[1].Split(", ");
-            film.Country = parseFilmCountry[0];
+            var FilmDTOCountryString = FilmDTOListItemTextGray[0].InnerText;
+            string[] parseFilmDTOCountryString = FilmDTOCountryString.Split(':');
+            string[] parseFilmDTOCountry = parseFilmDTOCountryString[1].Split(", ");
+            film.Country = parseFilmDTOCountry[0];
 
             //genre
-            var FilmGenreString = FilmListItemTextGray[1].InnerText;
-            string[] parseFilmGenreString = FilmGenreString.Split(':');
-            string[] parseFilmGenre = parseFilmGenreString[1].Split(", ");
-            film.Genre = parseFilmGenre[0];
+            var FilmDTOGenreString = FilmDTOListItemTextGray[1].InnerText;
+            string[] parseFilmDTOGenreString = FilmDTOGenreString.Split(':');
+            string[] parseFilmDTOGenre = parseFilmDTOGenreString[1].Split(", ");
+            film.Genre = parseFilmDTOGenre[0];
 
             //producer
-            var FilmProducerString = FilmListItemTextGray[2].InnerText;
-            string[] parseFilmProducerString = FilmProducerString.Split(": ");
-            film.Producer = parseFilmProducerString[1];
+            var FilmDTOProducerString = FilmDTOListItemTextGray[2].InnerText;
+            string[] parseFilmDTOProducerString = FilmDTOProducerString.Split(": ");
+            film.Producer = parseFilmDTOProducerString[1];
 
             //actor
-            var FilmActorString = FilmListItemTextGray[3].InnerText;
-            string[] parseFilmActorString = FilmActorString.Split(':');
-            string[] parseFilmActor = parseFilmActorString[1].Split(", ");
-            film.Actor = parseFilmActor[0];
+            var FilmDTOActorString = FilmDTOListItemTextGray[3].InnerText;
+            string[] parseFilmDTOActorString = FilmDTOActorString.Split(':');
+            string[] parseFilmDTOActor = parseFilmDTOActorString[1].Split(", ");
+            film.Actor = parseFilmDTOActor[0];
 
             filmList.Add(film);
-
-            context.Films.Add(film);
         }
-    context.SaveChanges();
+
+foreach (var film in filmList)
+{
+    filmService.Create(film);
+    Console.WriteLine(film.Name + " " + film.Genre);
 }
 
-using (ApplicationContext context = new ApplicationContext())
-{
-    var films = context.Films.AsNoTracking().ToList();
-    Console.WriteLine("Данные после добавления:");
-    foreach(Film film in films)
-    {
-        Console.WriteLine($"{film.Id}.{film.Name} - {film.Country}- {film.LinkPoster}- {film.Link}");
-    }
-}

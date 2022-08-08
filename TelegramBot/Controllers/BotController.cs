@@ -120,7 +120,6 @@ namespace TelegramBot.Controllers
                     $"Насладись жизнью интересных людей 🕶:"
                 );
                 await PrintFilm(filmService.GetRandomByGenre("биографический"), callbackQuery.Message.Chat.Id, bot);
-                await PrintFilm(_films[new Random().Next(_films.Count)], callbackQuery.Message.Chat.Id, bot);
                 await HelpString(callbackQuery.Message.Chat.Id, bot);
                 return;
             }
@@ -130,8 +129,7 @@ namespace TelegramBot.Controllers
                     callbackQuery.Message.Chat.Id,
                     $"Самое время для загадок! ♟\n Ищу фильмы:"
                 );
-                _films = filmService.GetListByGenre("детектив").ToList();
-
+                await PrintFilm(filmService.GetRandomByGenre("детектив"), callbackQuery.Message.Chat.Id, bot);
                 await HelpString(callbackQuery.Message.Chat.Id, bot);
                 return;
             }
@@ -141,8 +139,7 @@ namespace TelegramBot.Controllers
                     callbackQuery.Message.Chat.Id,
                     $"Лучшая вещь после сложного дня - хорошая комедия!\nПодборка с наилучшими пожеланиями ✨:"
                 );
-                _films = filmService.GetListByGenre("комедия").ToList();
-
+                await PrintFilm(filmService.GetRandomByGenre("комедия"), callbackQuery.Message.Chat.Id, bot);
                 await HelpString(callbackQuery.Message.Chat.Id, bot);
                 return;
             }
